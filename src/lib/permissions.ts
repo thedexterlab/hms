@@ -1,0 +1,19 @@
+export const permissions = {
+  dashboardView: 'Reception.Dashboard.View',
+  patientsSearch: 'Patients.Search',
+  patientsCreate: 'Patients.Create',
+  patientsDemographicsView: 'Patients.Demographics.View',
+  patientsDemographicsUpdate: 'Patients.Demographics.Update',
+  appointmentsView: 'Appointments.View',
+  appointmentsCreate: 'Appointments.Create',
+  appointmentsReschedule: 'Appointments.Reschedule',
+  appointmentsCancel: 'Appointments.Cancel',
+  appointmentsCheckIn: 'Appointments.CheckIn',
+  appointmentsNoShow: 'Appointments.MarkNoShow',
+  queueView: 'Queue.View',
+  queueManage: 'Queue.Manage',
+  printPatientCard: 'Print.PatientCard',
+  printAppointmentSlip: 'Print.AppointmentSlip',
+} as const;
+
+export type Permission = (typeof permissions)[keyof typeof permissions];

@@ -1,0 +1,22 @@
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, CalendarDays, FileText, HeartPulse, Pill, UserRound } from 'lucide-react';
+
+const patients: Record<string, { name: string; mrn: string; age: string; gender: string; phone: string; blood: string }> = {
+  'MH-240318': { name: 'Ayesha Khan', mrn: 'MH-240318', age: '32 years', gender: 'Female', phone: '+92 300 1234567', blood: 'B+' },
+  'MH-240321': { name: 'Muhammad Hamza', mrn: 'MH-240321', age: '47 years', gender: 'Male', phone: '+92 301 2345678', blood: 'O+' },
+  'MH-240327': { name: 'Sana Iqbal', mrn: 'MH-240327', age: '28 years', gender: 'Female', phone: '+92 302 3456789', blood: 'A+' },
+  'MH-240329': { name: 'Bilal Ahmed', mrn: 'MH-240329', age: '55 years', gender: 'Male', phone: '+92 303 4567890', blood: 'AB+' },
+  'MH-240334': { name: 'Nadia Rauf', mrn: 'MH-240334', age: '41 years', gender: 'Female', phone: '+92 304 5678901', blood: 'O-' },
+};
+
+export function DoctorPatientDetailPage() {
+  const { patientId = 'MH-240318' } = useParams();
+  const patient = patients[patientId] ?? patients['MH-240318'];
+  return <div>
+    <Link to="/doctor/patients" className="inline-flex items-center gap-2 text-sm font-semibold text-teal-700 hover:text-teal-900"><ArrowLeft className="h-4 w-4" />Back to patients</Link>
+    <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-100 text-xl font-bold text-teal-700">{patient.name.split(' ').map((part) => part[0]).join('')}</div><div><p className="text-sm font-semibold text-teal-700">Patient profile</p><h2 className="mt-1 text-3xl font-bold text-slate-900">{patient.name}</h2><p className="mt-1 text-sm text-slate-500">{patient.mrn} · OPD patient</p></div></div><div className="flex flex-wrap gap-2"><Link to={`/doctor/patients/${patient.mrn}/gynae-cycle`} className="rounded-xl border border-pink-200 bg-pink-50 px-4 py-3 text-center text-sm font-semibold text-pink-700 hover:bg-pink-100">Gynae cycle</Link><Link to="/doctor/consultation" className="rounded-xl bg-teal-700 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-teal-800">Start consultation</Link></div></div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.4fr]"><section className="space-y-6"><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="font-bold text-slate-900">Patient information</h3><div className="mt-5 grid gap-4 sm:grid-cols-2"><Info icon={UserRound} label="Age / gender" value={`${patient.age} · ${patient.gender}`} /><Info icon={HeartPulse} label="Blood group" value={patient.blood} /><Info icon={CalendarDays} label="Last visit" value="04 June 2026" /><Info icon={FileText} label="Phone" value={patient.phone} /></div></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="font-bold text-slate-900">Current summary</h3><p className="mt-4 text-sm leading-6 text-slate-600">Patient is attending the outpatient department for routine clinical follow-up. No active alerts have been recorded for this patient.</p></div></section><section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><h3 className="font-bold text-slate-900">Recent clinical history</h3><div className="mt-5 space-y-4">{[['04 Jun 2026', 'Follow-up consultation', 'Stable condition. Continue current treatment plan.'], ['18 May 2026', 'Initial consultation', 'Routine OPD assessment completed.'], ['02 May 2026', 'Prescription issued', 'Medication instructions provided to patient.']].map((visit) => <div key={visit[0]} className="flex gap-4 border-b border-slate-100 pb-4 last:border-0"><div className="mt-1 h-2.5 w-2.5 rounded-full bg-teal-500" /><div><p className="text-xs font-semibold text-slate-500">{visit[0]}</p><p className="mt-1 font-semibold text-slate-900">{visit[1]}</p><p className="mt-1 text-sm text-slate-600">{visit[2]}</p></div></div>)}</div><div className="mt-3 flex items-center gap-2 rounded-xl bg-teal-50 p-3 text-sm text-teal-800"><Pill className="h-4 w-4" />Current prescriptions are available in the prescriptions module.</div></section></div>
+  </div>;
+}
+
+function Info({ icon: Icon, label, value }: { icon: typeof UserRound; label: string; value: string }) { return <div className="flex gap-3"><Icon className="mt-0.5 h-4 w-4 text-teal-700" /><div><p className="text-xs text-slate-500">{label}</p><p className="mt-1 text-sm font-semibold text-slate-800">{value}</p></div></div>; }
