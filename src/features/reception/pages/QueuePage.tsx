@@ -2,9 +2,21 @@ import { useQuery } from '@tanstack/react-query';
 import { getQueue } from '../services/receptionService';
 import { LoadingSkeleton } from '../../../components/common/LoadingSkeleton';
 import { ErrorState } from '../../../components/common/ErrorState';
+import { useEffect } from 'react';
+import { QUEUE_UPDATED_EVENT } from '../../shared/queueBridge';
 
 export function QueuePage() {
   const { data = [], isLoading, error, refetch } = useQuery({ queryKey: ['queue-list'], queryFn: getQueue });
+
+  useEffect(() => {
+    const refresh = () => { void refetch(); };
+    window.addEventListener('storage', refresh);
+    window.addEventListener(QUEUE_UPDATED_EVENT, refresh);
+    return () => {
+      window.removeEventListener('storage', refresh);
+      window.removeEventListener(QUEUE_UPDATED_EVENT, refresh);
+    };
+  }, [refetch]);
 
   if (isLoading) return <LoadingSkeleton rows={6} />;
   if (error) return <ErrorState onRetry={() => refetch()} />;

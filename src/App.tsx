@@ -3,15 +3,25 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { LoginPage } from './LoginPage';
 import { ProtectedRoute } from './auth/ProtectedRoute';
+import { AdminRoute } from './auth/AdminRoute';
 import { RoleRedirect } from './RoleRedirect';
 import { ReceptionLayout } from './layouts/ReceptionLayout';
+import { AdminLayout } from './layouts/AdminLayout';
+import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage';
+import { AdminUsersPage } from './features/admin/pages/AdminUsersPage';
+import { AdminPatientsPage } from './features/admin/pages/AdminPatientsPage';
+import { AdminAppointmentsPage } from './features/admin/pages/AdminAppointmentsPage';
+import { AdminPaymentsPage } from './features/admin/pages/AdminPaymentsPage';
+import { AdminActivityPage } from './features/admin/pages/AdminActivityPage';
+import { AdminBroadcastPage } from './features/admin/pages/AdminBroadcastPage';
+import { AdminProfilePage } from './features/admin/pages/AdminProfilePage';
 import { ReceptionDashboardPage } from './features/reception/pages/ReceptionDashboardPage';
 import { PatientSearchPage } from './features/reception/pages/PatientSearchPage';
 import { NewPatientPage } from './features/reception/pages/NewPatientPage';
 import { WalkInPage } from './features/reception/pages/WalkInPage';
 import { PatientProfilePage } from './features/reception/pages/PatientProfilePage';
-import { AppointmentPage } from './features/reception/pages/AppointmentPage';
 import { QueuePage } from './features/reception/pages/QueuePage';
+import { DoctorsPage } from './features/reception/pages/DoctorsPage';
 import { PrintCenterPage } from './features/reception/pages/PrintCenterPage';
 import { ActivityPage } from './features/reception/pages/ActivityPage';
 import { NotificationsPage } from './features/reception/pages/NotificationsPage';
@@ -38,7 +48,18 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<RoleRedirect />} />
-            <Route path="/admin/dashboard" element={<div className="flex min-h-screen items-center justify-center bg-slate-50 p-6 text-center text-slate-700"><div><HospitalLogo className="mx-auto mb-4 h-24 w-24" /><p>Administrator dashboard placeholder.</p></div></div>} />
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route element={<AdminLayout />}>
+                <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/admin/patients" element={<AdminPatientsPage />} />
+                <Route path="/admin/appointments" element={<AdminAppointmentsPage />} />
+                <Route path="/admin/payments" element={<AdminPaymentsPage />} />
+                <Route path="/admin/notifications" element={<AdminBroadcastPage />} />
+                <Route path="/admin/activity" element={<AdminActivityPage />} />
+                <Route path="/admin/profile" element={<AdminProfilePage />} />
+              </Route>
+            </Route>
             <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
             <Route element={<ReceptionLayout />}>
               <Route path="/reception/dashboard" element={<ReceptionDashboardPage />} />
@@ -46,10 +67,8 @@ export default function App() {
               <Route path="/reception/patients/new" element={<NewPatientPage />} />
               <Route path="/reception/patients/:patientId" element={<PatientProfilePage />} />
               <Route path="/reception/patients/:patientId/edit" element={<NewPatientPage />} />
-              <Route path="/reception/appointments" element={<AppointmentPage />} />
-              <Route path="/reception/appointments/new" element={<AppointmentPage />} />
-              <Route path="/reception/appointments/:appointmentId" element={<AppointmentPage />} />
               <Route path="/reception/queue" element={<QueuePage />} />
+              <Route path="/reception/doctors" element={<DoctorsPage />} />
               <Route path="/reception/walk-ins/new" element={<WalkInPage />} />
               <Route path="/reception/print-center" element={<PrintCenterPage />} />
               <Route path="/reception/activity" element={<ActivityPage />} />

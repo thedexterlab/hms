@@ -14,6 +14,13 @@ export const permissions = {
   queueManage: 'Queue.Manage',
   printPatientCard: 'Print.PatientCard',
   printAppointmentSlip: 'Print.AppointmentSlip',
+  adminOverview: 'Admin.Overview.View',
+  adminUsersView: 'Admin.Users.View',
+  adminUsersManage: 'Admin.Users.Manage',
+  adminPatientsManage: 'Admin.Patients.Manage',
+  adminAppointmentsManage: 'Admin.Appointments.Manage',
+  adminPaymentsManage: 'Admin.Payments.Manage',
+  adminBroadcast: 'Admin.Broadcast',
 } as const;
 
 export type Permission = (typeof permissions)[keyof typeof permissions];

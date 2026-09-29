@@ -1,12 +1,21 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const rawSession = window.localStorage.getItem('hms-auth-session');
+  let accessToken: string | undefined;
+  try {
+    accessToken = rawSession ? (JSON.parse(rawSession) as { accessToken?: string }).accessToken : undefined;
+  } catch {
+    accessToken = undefined;
+  }
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...init?.headers,
     },
     credentials: 'include',
-    ...init,
   });
 
   if (response.status === 401) {
@@ -21,6 +30,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error('NETWORK_ERROR');
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 

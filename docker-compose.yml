@@ -1,0 +1,6 @@
+# The database now runs on XAMPP's MariaDB (MySQL protocol) instead of a
+# container. Start it from the XAMPP control panel and create the `hms`
+# database once — see .env.database.example for the connection details.
+# This file is intentionally left empty of services.
+services: {}
+

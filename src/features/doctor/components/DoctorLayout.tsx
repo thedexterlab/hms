@@ -2,6 +2,8 @@ import { HospitalLogo } from '../../../components/common/HospitalLogo';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, Bell, CalendarDays, FileText, LogOut, Pill, Settings, Stethoscope, UserRound, Users, ListOrdered } from 'lucide-react';
 import { clearCurrentSession, getCurrentSession } from '../../../auth.service';
+import { useEffect, useRef } from 'react';
+import { clockOutDoctor, sendDoctorHeartbeat } from '../services/doctorPresence';
 
 const links = [
   ['/doctor/dashboard', 'Dashboard', Activity], ['/doctor/queue', 'OPD queue', ListOrdered], ['/doctor/patients', 'My patients', Users], ['/doctor/appointments', 'Appointments', CalendarDays],
@@ -14,7 +16,28 @@ export function DoctorLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const session = getCurrentSession();
-  const logout = () => { clearCurrentSession(); navigate('/login', { replace: true }); };
+  const lastActivity = useRef(Date.now());
+
+  useEffect(() => {
+    const recordActivity = () => { lastActivity.current = Date.now(); };
+    const heartbeat = () => {
+      if (Date.now() - lastActivity.current < 5 * 60 * 1000) void sendDoctorHeartbeat().catch(() => undefined);
+    };
+    const events: Array<keyof WindowEventMap> = ['pointerdown', 'keydown', 'scroll', 'focus'];
+    events.forEach((event) => window.addEventListener(event, recordActivity, { passive: true }));
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 60_000);
+    return () => {
+      window.clearInterval(timer);
+      events.forEach((event) => window.removeEventListener(event, recordActivity));
+    };
+  }, []);
+
+  const logout = async () => {
+    await clockOutDoctor().catch(() => undefined);
+    clearCurrentSession();
+    navigate('/login', { replace: true });
+  };
   return <div className="min-h-screen bg-[#f4f8fb] text-slate-800">
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col bg-[#073b4c] px-4 py-5 text-white lg:flex">
       <Link to="/doctor/dashboard" className="flex items-center gap-3 border-b border-white/10 px-1 pb-5"><HospitalLogo /><div><p className="font-bold">Mastan Hospital</p><p className="text-xs text-cyan-100">Doctor workspace</p></div></Link>

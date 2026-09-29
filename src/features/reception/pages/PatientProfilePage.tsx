@@ -125,7 +125,7 @@ export function PatientProfilePage() {
           <div className="mt-4 space-y-3">
             <button type="button" onClick={() => navigate(`/reception/patients/${patientId}/edit`)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">Edit approved demographics</button>
             <button type="button" onClick={() => navigate(`/reception/appointments/new?patientId=${patientId}`)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">Book appointment / assign doctor</button>
-            <button type="button" onClick={() => navigate(`/reception/walk-ins/new?patientId=${patientId}`)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">Register walk-in</button>
+            <button type="button" onClick={() => navigate(`/reception/walk-ins/new?patientId=${patientId}`)} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">Book appointment</button>
             <button type="button" onClick={() => window.print()} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50">Print patient card</button>
           </div>
         </div>

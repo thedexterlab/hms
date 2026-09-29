@@ -89,3 +89,12 @@ export interface NotificationItem {
   detail: string;
   severity: 'info' | 'warning' | 'critical';
 }
+
+export interface DoctorDirectoryItem {
+  id: string;
+  name: string;
+  department: string;
+  status: 'Available' | 'On Round' | 'Off Duty';
+  opdHours: string;
+  room: string;
+}

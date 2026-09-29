@@ -68,6 +68,13 @@ const LOCAL_ACCOUNTS: Record<string, { password: string; response: AuthResponse 
       },
     },
   },
+  'doctor@master.local': {
+    password: 'Doctor@123',
+    response: {
+      accessToken: 'local-doctor-master-token', refreshToken: 'local-doctor-master-refresh', expiresIn: 86400,
+      user: { id: 'local-doctor-master', fullName: 'Dr. Master Doctor', roles: ['Doctor'], specialty: 'General Medicine', permissions: ['Patients.View', 'Appointments.View', 'MedicalRecords.View'], departmentId: 'opd-master', departmentName: 'General Medicine' },
+    },
+  },
   'gynae@mastan.local': {
     password: 'Gynae@123',
     response: {
@@ -94,6 +101,29 @@ const LOCAL_ACCOUNTS: Record<string, { password: string; response: AuthResponse 
     response: {
       accessToken: 'local-pharmacist-token', refreshToken: 'local-pharmacist-refresh', expiresIn: 86400,
       user: { id: 'local-pharmacist', fullName: 'Mastan Hospital Pharmacist', roles: ['Pharmacist'], permissions: ['Pharmacy.View', 'Pharmacy.Dispense', 'Inventory.View'], departmentId: 'pharmacy', departmentName: 'Pharmacy' },
+    },
+  },
+  'admin@mastan.local': {
+    password: 'Admin@123',
+    response: {
+      accessToken: 'local-admin-token', refreshToken: 'local-admin-refresh', expiresIn: 86400,
+      user: {
+        id: 'local-administrator',
+        fullName: 'System Administrator',
+        roles: ['Administrator'],
+        permissions: [
+          'Reception.Dashboard.View', 'Patients.Search', 'Patients.Create', 'Patients.Demographics.View', 'Patients.Demographics.Update',
+          'Appointments.View', 'Appointments.Create', 'Appointments.Reschedule', 'Appointments.Cancel', 'Appointments.CheckIn', 'Appointments.MarkNoShow',
+          'Queue.View', 'Queue.Manage', 'Print.PatientCard', 'Print.AppointmentSlip',
+          'Doctors.View', 'Doctors.Presence', 'Payments.View', 'Payments.Create',
+          'Consultations.View', 'Consultations.Create', 'Labs.View', 'Labs.Order', 'Labs.Update',
+          'Pharmacy.View', 'Pharmacy.Dispense', 'Pharmacy.Manage', 'Notifications.View', 'Audit.View',
+          'MedicalRecords.View', 'Inventory.View', 'Reports.View',
+          'Admin.Overview.View', 'Admin.Users.View', 'Admin.Users.Manage', 'Admin.Patients.Manage', 'Admin.Appointments.Manage', 'Admin.Payments.Manage', 'Admin.Broadcast',
+        ],
+        departmentId: 'administration',
+        departmentName: 'Hospital Administration',
+      },
     },
   },
 } : {};
@@ -161,8 +191,30 @@ export function clearCurrentSession(): void {
 
 export async function login(request: LoginRequest): Promise<AuthResponse> {
   if (!MOCK_AUTH_ENABLED) {
-    // Fail closed: no demo credentials in this build (and no backend yet).
-    throw new AuthError('Demo accounts are disabled in this build. Connect the hospital server to sign in.', 'NETWORK_ERROR');
+    const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? '/api';
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ usernameOrEmail: request.usernameOrEmail.trim(), password: request.password, rememberMe: request.rememberMe }),
+      });
+    } catch {
+      throw new AuthError('Unable to connect to the hospital server. Please try again.', 'NETWORK_ERROR');
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) throw new AuthError('Invalid username or password.', 'INVALID_CREDENTIALS');
+      if (response.status === 403) throw new AuthError('Your account does not have permission to access this system.', 'FORBIDDEN');
+      if (response.status === 423) throw new AuthError('Your account is temporarily locked. Please contact the administrator.', 'ACCOUNT_LOCKED');
+      throw new AuthError('Unable to connect to the hospital server. Please try again.', 'NETWORK_ERROR');
+    }
+
+    const payload = await response.json() as AuthResponse;
+    if (!payload.accessToken || !payload.refreshToken || !payload.user) throw new AuthError('Invalid response from the hospital server.', 'NETWORK_ERROR');
+    setCurrentSession(payload, request.rememberMe);
+    return payload;
   }
 
   const account = LOCAL_ACCOUNTS[request.usernameOrEmail.trim().toLowerCase()];

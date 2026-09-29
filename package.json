@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "vite --mode backend",
+    "api": "dotnet run --project backend/Hms.Api",
+    "db:up": "powershell -Command \"Start-Process 'C:/xampp/xampp-control.exe'\"",
+    "db:down": "powershell -Command \"Get-Process mysqld -ErrorAction SilentlyContinue | Stop-Process\"",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",

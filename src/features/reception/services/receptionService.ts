@@ -1,5 +1,7 @@
-import type { AppointmentRecord, DashboardSummary, NotificationItem, PatientDetail, PatientRecord, QueueItem } from '../types';
+import type { AppointmentRecord, DashboardSummary, DoctorDirectoryItem, NotificationItem, PatientDetail, PatientRecord, QueueItem } from '../types';
 import { appointments, dashboardSummary, notifications, patientDetails as initialPatientDetails, patients as initialPatients, queueItems } from './mockData';
+import { isMockAuthEnabled } from '../../../auth.service';
+import { apiClient } from '../../../lib/apiClient';
 
 const PATIENTS_STORAGE_KEY = 'hms-patients';
 const PATIENT_DETAILS_STORAGE_KEY = 'hms-patient-details';
@@ -125,6 +127,10 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
 }
 
 export async function searchPatients(query: string): Promise<PatientRecord[]> {
+  if (!isMockAuthEnabled()) {
+    const records = await apiClient.get<Array<PatientRecord & { id: number }>>(`/patients?query=${encodeURIComponent(query)}`);
+    return records.map((patient) => ({ ...patient, id: String(patient.id) }));
+  }
   if (!query.trim()) {
     return patients;
   }
@@ -134,6 +140,10 @@ export async function searchPatients(query: string): Promise<PatientRecord[]> {
 }
 
 export async function getPatientById(patientId: string): Promise<PatientDetail> {
+  if (!isMockAuthEnabled()) {
+    const patient = await apiClient.get<PatientDetail & { id: number }>(`/patients/${encodeURIComponent(patientId)}`);
+    return { ...patient, id: String(patient.id) };
+  }
   const patient = patientDetails[patientId] ?? patients.find((item) => item.id === patientId);
   if (!patient) {
     throw new Error('NOT_FOUND');
@@ -143,11 +153,13 @@ export async function getPatientById(patientId: string): Promise<PatientDetail> 
 }
 
 export async function getAppointments(): Promise<AppointmentRecord[]> {
+  if (!isMockAuthEnabled()) return apiClient.get<AppointmentRecord[]>('/appointments');
   const stored = readJsonStorage<AppointmentRecord[]>('hms-appointments');
   return stored ? [...stored, ...appointments] : appointments;
 }
 
 export async function searchPatientsByIdentity(query: string): Promise<PatientRecord[]> {
+  if (!isMockAuthEnabled()) return searchPatients(query);
   const normalized = query.trim().toLowerCase();
   if (!normalized) return [];
   const normalizedDigits = normalized.replace(/\D/g, '');
@@ -195,7 +207,8 @@ export async function getQueue(): Promise<QueueItem[]> {
       department: visit.department,
       doctor: visit.doctor,
       priority: visit.priority,
-      status: visit.status,
+      // Booked appointments arrive in the queue view as waiting patients.
+      status: visit.status === 'Scheduled' ? 'Waiting' : visit.status,
       waitingDuration: '—',
     })),
   ];
@@ -204,6 +217,30 @@ export async function getQueue(): Promise<QueueItem[]> {
 
 export async function getNotifications(): Promise<NotificationItem[]> {
   return notifications;
+}
+
+// Doctor directory shown to the reception desk so they can see which doctors
+// are available before booking an appointment. Statuses are operational
+// (roster) values, not clinical information.
+const doctorDirectory: DoctorDirectoryItem[] = [
+  { id: 'local-doctor-master', name: 'Dr. Master Doctor', department: 'General Medicine', status: 'Available', opdHours: '09:00 – 17:00', room: 'OPD 2' },
+  { id: 'local-doctor-opd', name: 'Dr. OPD Doctor', department: 'General Medicine', status: 'Available', opdHours: '09:00 – 17:00', room: 'OPD 1' },
+  { id: 'local-physician', name: 'Dr. General Physician', department: 'General Medicine', status: 'Available', opdHours: '09:00 – 17:00', room: 'OPD 2' },
+  { id: 'local-pediatrician', name: 'Dr. Child Specialist', department: 'Pediatrics', status: 'Available', opdHours: '09:00 – 15:00', room: 'Room 204' },
+  { id: 'local-gynae', name: 'Dr. Gynae Specialist', department: 'Gynecology', status: 'Available', opdHours: '09:00 – 15:00', room: 'Room 303' },
+  { id: 'doc-1', name: 'Dr. Sarah Ahmed', department: 'General Medicine', status: 'Available', opdHours: '09:00 – 14:00', room: 'Room 101' },
+  { id: 'doc-2', name: 'Dr. Farhan Ali', department: 'General Medicine', status: 'On Round', opdHours: '10:00 – 16:00', room: 'Room 102' },
+  { id: 'doc-3', name: 'Dr. Ali Raza', department: 'Pediatrics', status: 'Available', opdHours: '09:00 – 13:00', room: 'Room 201' },
+  { id: 'doc-4', name: 'Dr. Hina Malik', department: 'Pediatrics', status: 'Available', opdHours: '14:00 – 18:00', room: 'Room 202' },
+  { id: 'doc-5', name: 'Dr. Saima Noor', department: 'Pediatrics', status: 'On Round', opdHours: '09:00 – 15:00', room: 'Room 203' },
+  { id: 'doc-6', name: 'Dr. Hina Shah', department: 'Gynecology', status: 'Available', opdHours: '09:00 – 13:00', room: 'Room 301' },
+  { id: 'doc-7', name: 'Dr. Sana Noor', department: 'Gynecology', status: 'Off Duty', opdHours: '—', room: 'Room 302' },
+  { id: 'doc-8', name: 'Dr. Nadeem Qureshi', department: 'Orthopedics', status: 'Available', opdHours: '10:00 – 17:00', room: 'Room 401' },
+];
+
+export async function getDoctors(): Promise<DoctorDirectoryItem[]> {
+  if (!isMockAuthEnabled()) return apiClient.get<DoctorDirectoryItem[]>('/doctors');
+  return doctorDirectory;
 }
 
 export async function getReceptionActivity(): Promise<Array<{ action: string; entity: string; timestamp: string; status: string }>> {
@@ -255,7 +292,11 @@ export async function duplicateCheck(payload: Record<string, string>): Promise<{
   };
 }
 
-export async function createPatient(payload: Record<string, unknown>): Promise<{ id: string; mrn: string; mrnProvisional: true }> {
+export async function createPatient(payload: Record<string, unknown>): Promise<{ id: string; mrn: string; mrnProvisional: boolean }> {
+  if (!isMockAuthEnabled()) {
+    const created = await apiClient.post<{ id: number; mrn: string; mrnProvisional: boolean }>('/patients', payload);
+    return { ...created, id: String(created.id) };
+  }
   // Derive age from the mandatory DOB (Registrar Playbook §3.2) unless an
   // approximate age was captured explicitly because the DOB was unknown.
   const deriveAge = (value: unknown): number => {
@@ -318,6 +359,11 @@ export async function createPatient(payload: Record<string, unknown>): Promise<{
 }
 
 export async function updatePatient(payload: Record<string, unknown>): Promise<void> {
+  if (!isMockAuthEnabled()) {
+    const id = String(payload.id ?? '');
+    await apiClient.patch(`/patients/${encodeURIComponent(id)}`, payload);
+    return;
+  }
   const id = String(payload.id ?? '');
   if (!id || !patientDetails[id]) {
     throw new Error('NOT_FOUND');
@@ -381,7 +427,11 @@ export async function updatePatient(payload: Record<string, unknown>): Promise<v
   persistPatientState();
 }
 
-export async function createAppointment(payload: Record<string, unknown>): Promise<{ id: string }> {
+export async function createAppointment(payload: Record<string, unknown>): Promise<{ id: string; tokenNumber?: number }> {
+  if (!isMockAuthEnabled()) {
+    const created = await apiClient.post<{ id: number; tokenNumber: number }>('/appointments', payload);
+    return { id: String(created.id), tokenNumber: created.tokenNumber };
+  }
   return { id: 'apt-new' };
 }
 

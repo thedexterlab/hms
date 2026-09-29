@@ -1,0 +1,17 @@
+@Hms.Api_HostAddress = http://localhost:5127
+
+GET {{Hms.Api_HostAddress}}/health
+Accept: application/json
+
+###
+
+POST {{Hms.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "usernameOrEmail": "reception@example.com",
+  "password": "Reception@123",
+  "rememberMe": false
+}
+
+###

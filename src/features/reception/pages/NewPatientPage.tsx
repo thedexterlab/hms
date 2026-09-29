@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PatientRecord } from '../types';
 import { patientRegistrationSchema } from '../schemas/patientSchemas';
@@ -28,6 +28,7 @@ export function NewPatientPage() {
       primaryMobile: '',
       secondaryMobile: '',
       email: '',
+      cnic: '',
       city: 'Karachi Malir',
       addressLine: '',
       province: 'Sindh',
@@ -38,7 +39,9 @@ export function NewPatientPage() {
       guardianName: '',
       guardianRelationship: '',
       guardianMobile: '',
-      registrationType: 'OPD',
+      guardianCnic: '',
+      guardianAddress: '',
+      registrationType: 'General OPD',
       department: 'General Medicine',
       consent: false,
       privacyNotice: false,
@@ -47,6 +50,27 @@ export function NewPatientPage() {
 
   const navigate = useNavigate();
   const createPatientMutation = useMutation({ mutationFn: createPatient });
+
+  // Only 'General OPD' uses the short single-screen form; Gynae OPD,
+  // Pediatrics OPD (children's OPD) and Emergency keep the full wizard.
+  const registrationType = watch('registrationType');
+  const isGeneralOpd = registrationType === 'General OPD';
+
+  // Keep the department in sync with the chosen registration type so the
+  // long-form wizard (Step 4) starts with the correct clinic preselected.
+  const handleRegistrationTypeChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setStep(1);
+    const departmentByType: Record<string, string> = {
+      'General OPD': 'General Medicine',
+      'Gynae OPD': 'Gynecology',
+      'Pediatrics OPD': 'Pediatrics',
+      'Emergency': 'General Medicine',
+    };
+    const nextDepartment = departmentByType[event.target.value];
+    if (nextDepartment) {
+      setValue('department', nextDepartment);
+    }
+  };
 
   const onSubmit = async (values: any) => {
     const duplicate = await duplicateCheck({
@@ -72,9 +96,9 @@ export function NewPatientPage() {
 
   const onInvalid = (formErrors: Record<string, unknown>) => {
     const firstError = Object.keys(formErrors)[0];
-    if (['firstName', 'lastName', 'gender', 'dob', 'bloodGroup', 'age'].includes(firstError)) setStep(1);
+    if (['firstName', 'lastName', 'gender', 'dob', 'bloodGroup', 'age', 'cnic'].includes(firstError)) setStep(1);
     else if (['primaryMobile', 'email', 'city', 'district', 'addressLine', 'province'].includes(firstError)) setStep(2);
-    else if (['guardianRelationship'].includes(firstError)) setStep(3);
+    else if (['guardianRelationship', 'guardianCnic', 'guardianAddress'].includes(firstError)) setStep(3);
     else if (['registrationType', 'department', 'consent', 'privacyNotice'].includes(firstError)) setStep(4);
   };
 
@@ -87,15 +111,28 @@ export function NewPatientPage() {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" noValidate>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((item) => (
-            <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-3 py-2 text-sm font-semibold ${step === item ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-700'}`}>
-              Step {item}
-            </button>
-          ))}
+        <div className="max-w-sm">
+          <label className="mb-2 block text-sm font-semibold text-slate-800">Registration type</label>
+          <select {...register('registrationType', { onChange: handleRegistrationTypeChange })} className="w-full rounded-xl border border-slate-200 px-3 py-2">
+            <option value="General OPD">General OPD</option>
+            <option value="Gynae OPD">Gynae OPD</option>
+            <option value="Pediatrics OPD">Pediatrics OPD</option>
+            <option value="Emergency">Emergency</option>
+          </select>
+          {errors.registrationType ? <p className="mt-1 text-sm text-red-600">{errors.registrationType.message}</p> : null}
         </div>
 
-        {step === 1 ? (
+        {!isGeneralOpd ? (
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((item) => (
+              <button key={item} type="button" onClick={() => setStep(item)} className={`rounded-full px-3 py-2 text-sm font-semibold ${step === item ? 'bg-teal-700 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                Step {item}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {(isGeneralOpd || step === 1) ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-800">First name</label>
@@ -118,14 +155,19 @@ export function NewPatientPage() {
               {errors.gender ? <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p> : null}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-800">Age (only if DOB unknown)</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-800">{isGeneralOpd ? 'Age' : 'Age (only if DOB unknown)'}</label>
               <input type="number" min="0" {...register('age')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
               {errors.age ? <p className="mt-1 text-sm text-red-600">{errors.age.message}</p> : null}
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-800">Date of birth</label>
-              <input type="date" {...register('dob')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
-              {errors.dob ? <p className="mt-1 text-sm text-red-600">{errors.dob.message}</p> : null}
+              <label className="mb-2 block text-sm font-semibold text-slate-800">Contact Number</label>
+              <input {...register('primaryMobile')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+              {errors.primaryMobile ? <p className="mt-1 text-sm text-red-600">{errors.primaryMobile.message}</p> : null}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-800">CNIC</label>
+              <input {...register('cnic')} className="w-full rounded-xl border border-slate-200 px-3 py-2" placeholder="42101-1234567-8" />
+              {errors.cnic ? <p className="mt-1 text-sm text-red-600">{errors.cnic.message}</p> : null}
             </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-800">Blood group</label>
@@ -156,10 +198,10 @@ export function NewPatientPage() {
           </div>
         ) : null}
 
-        {step === 2 ? (
+        {(!isGeneralOpd && step === 2) ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-800">Primary mobile</label>
+              <label className="mb-2 block text-sm font-semibold text-slate-800">Contact Number</label>
               <input {...register('primaryMobile')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
               {errors.primaryMobile ? <p className="mt-1 text-sm text-red-600">{errors.primaryMobile.message}</p> : null}
             </div>
@@ -229,7 +271,7 @@ export function NewPatientPage() {
           </div>
         ) : null}
 
-        {step === 3 ? (
+        {(!isGeneralOpd && step === 3) ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-800">Guardian name</label>
@@ -250,6 +292,7 @@ export function NewPatientPage() {
                 <option value="Uncle">Uncle</option>
                 <option value="Aunt">Aunt</option>
                 <option value="Guardian">Guardian</option>
+                <option value="Guardian">Neighbors</option>
                 <option value="Other">Other</option>
               </select>
               {errors.guardianRelationship ? <p className="mt-1 text-sm text-red-600">{errors.guardianRelationship.message}</p> : null}
@@ -258,19 +301,20 @@ export function NewPatientPage() {
               <label className="mb-2 block text-sm font-semibold text-slate-800">Guardian mobile</label>
               <input {...register('guardianMobile')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
             </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-800">Guardian CNIC</label>
+              <input {...register('guardianCnic')} className="w-full rounded-xl border border-slate-200 px-3 py-2" placeholder="42101-1234567-8" />
+              {errors.guardianCnic ? <p className="mt-1 text-sm text-red-600">{errors.guardianCnic.message}</p> : null}
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-slate-800">Guardian Address</label>
+              <input {...register('guardianAddress')} className="w-full rounded-xl border border-slate-200 px-3 py-2" />
+            </div>
           </div>
         ) : null}
 
-        {step === 4 ? (
+        {(!isGeneralOpd && step === 4) ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-800">Registration type</label>
-              <select {...register('registrationType')} className="w-full rounded-xl border border-slate-200 px-3 py-2">
-                <option value="OPD">OPD</option>
-                <option value="Emergency">Emergency</option>
-                <option value="Walk-In">Walk-In</option>
-              </select>
-            </div>
             <div>
               <label className="mb-2 block text-sm font-semibold text-slate-800">Department</label>
               <select {...register('department')} className="w-full rounded-xl border border-slate-200 px-3 py-2">
@@ -279,27 +323,40 @@ export function NewPatientPage() {
                 <option value="Gynecology">Gynecology</option>
               </select>
             </div>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" {...register('consent')} />
-              Consent acknowledged
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" {...register('privacyNotice')} />
-              Privacy notice acknowledged
-            </label>
           </div>
         ) : null}
 
-        {step === 5 ? (
+        {(!isGeneralOpd && step === 5) ? (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             <p>Important demographic changes are recorded for audit and patient-safety purposes.</p>
             <p className="mt-2">Receptionists may only capture approved demographic information. Clinical notes remain outside this form.</p>
           </div>
         ) : null}
 
+        {/* {isGeneralOpd ? (
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" {...register('consent')} />
+              Consent acknowledged
+            </label>
+            {errors.consent ? <p className="text-sm text-red-600">{errors.consent.message}</p> : null}
+            <label className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" {...register('privacyNotice')} />
+              Privacy notice acknowledged
+            </label>
+            {errors.privacyNotice ? <p className="text-sm text-red-600">{errors.privacyNotice.message}</p> : null}
+          </div>
+        ) : null} */}
+
         <div className="flex justify-between gap-3">
-          <button type="button" onClick={() => setStep((value) => Math.max(1, value - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Previous</button>
-          {step < 5 ? <button type="button" onClick={() => setStep((value) => value + 1)} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Next</button> : <button type="submit" disabled={isSubmitting} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Register patient</button>}
+          {isGeneralOpd ? (
+            <button type="submit" disabled={isSubmitting} className="ml-auto rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Register patient</button>
+          ) : (
+            <>
+              <button type="button" onClick={() => setStep((value) => Math.max(1, value - 1))} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Previous</button>
+              {step < 5 ? <button type="button" onClick={() => setStep((value) => value + 1)} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Next</button> : <button type="submit" disabled={isSubmitting} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-semibold text-white">Register patient</button>}
+            </>
+          )}
         </div>
       </form>
 

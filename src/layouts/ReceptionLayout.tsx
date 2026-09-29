@@ -1,5 +1,5 @@
 import { HospitalLogo } from '../components/common/HospitalLogo';
-import { Menu, Bell, Search, Plus, UserCircle2, Activity, LogOut } from 'lucide-react';
+import { Menu, Bell, Search, Plus, UserCircle2, Activity, LogOut, CalendarDays, Stethoscope } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { PermissionGuard } from '../auth/PermissionGuard';
@@ -9,8 +9,8 @@ const navigation = [
   { label: 'Reception Dashboard', to: '/reception/dashboard', icon: Activity, permission: 'Reception.Dashboard.View' },
   { label: 'Patient Search', to: '/reception/patients', icon: Search, permission: 'Patients.Search' },
   { label: 'New Registration', to: '/reception/patients/new', icon: Plus, permission: 'Patients.Create' },
-  { label: 'Appointments', to: '/reception/appointments', icon: Activity, permission: 'Appointments.View' },
-  { label: 'Walk-In Registration', to: '/reception/walk-ins/new', icon: Plus, permission: 'Patients.Create' },
+  { label: 'Appointments', to: '/reception/walk-ins/new', icon: CalendarDays, permission: 'Patients.Create' },
+  { label: 'Available Doctors', to: '/reception/doctors', icon: Stethoscope, permission: 'Reception.Dashboard.View' },
   { label: 'OPD Queue', to: '/reception/queue', icon: Activity, permission: 'Queue.View' },
   { label: 'Print Center', to: '/reception/print-center', icon: Activity, permission: 'Print.PatientCard' },
   { label: 'Recent Activity', to: '/reception/activity', icon: Activity, permission: 'Reception.Dashboard.View' },
@@ -30,7 +30,7 @@ export function ReceptionLayout() {
     navigate('/login', { replace: true });
   };
 
-  const pageTitle = location.pathname.replace('/reception/', '').replace(/\//g, ' ').replace(/(^|\s)(\w)/g, (m) => m.toUpperCase()) || 'Dashboard';
+  const pageTitle = location.pathname.replace('/reception/', '').replace(/walk-ins\/new/, 'appointments').replace(/\//g, ' ').replace(/(^|\s)(\w)/g, (m) => m.toUpperCase()) || 'Dashboard';
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800">
